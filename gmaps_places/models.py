@@ -113,9 +113,10 @@ class GmapsPlace(models.Model):
     address = GmapsField(plugin_options={
         'geocode_field': 'geocode', 'type_field': 'geo_type',
         'allowed_types': ALLOWED_TYPES},
-        select2_options={'width': '300px'})
+        select2_options={'width': '300px'},
+        help_text=u"Type the address you're looking for and click on the red marker to select it.")
     geocode = models.CharField(max_length=255, blank=True)
-    geo_type = GeotypeField()
+    geo_type = GeotypeField(blank=True)
 
     continent_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
