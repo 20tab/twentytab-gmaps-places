@@ -140,6 +140,13 @@ class GmapsPlace(models.Model):
         GmapsItem, on_delete=models.SET_NULL,
         related_name='gmapplace_sublocality_set', null=True, blank=True)
 
+    @property
+    def country_code(self):
+        if self.country_item:
+            return self.country_item.short_name
+        else:
+            return ""
+
     def __unicode__(self):
         return u'{}'.format(self.address)
 
