@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
-import gmapsplaces
+import gmaps_places
 
 setup(
     name='twentytab-gmaps-places',
-    version=gmapsplaces.__version__,
+    version=gmaps_places.__version__,
     description='A django app on top of twentytab-gmaps and google maps api v3 to manage geolocation and markers with all the administrative level details',
     author='20tab S.r.l.',
     author_email='info@20tab.com',
