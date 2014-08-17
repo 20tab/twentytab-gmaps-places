@@ -1,2 +1,2 @@
 include LICENSE
-recursive-include gmapsplaces/static *
+recursive-include gmaps_places/static *

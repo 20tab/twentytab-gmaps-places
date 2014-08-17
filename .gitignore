@@ -2,9 +2,13 @@
 __pycache__/
 *.py[cod]
 
-# vim stuff
+# Vim stuff
 *.swp
 *.un~
+
+# Miscellaneous
+.DS_Store
+.idea
 
 # C extensions
 *.so
