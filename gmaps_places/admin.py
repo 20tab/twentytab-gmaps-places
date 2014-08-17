@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.conf import settings
-from gmaps_places.models import GmapsPlace, GmapsItem
+from models import GmapsPlace, GmapsItem
 import time
 
 
@@ -24,10 +24,11 @@ class GmapsItemAdmin(admin.ModelAdmin):
 class GmapsPlaceAdmin(admin.ModelAdmin):
 
     def country_flag(obj):
-        return u"<img src='{}flags/blank.png' class='flag flag-{}'>".format(
+        return u"<img src='{}gmaps_places/flags/blank.png' class='flag flag-{}'>".format(
             settings.STATIC_URL, obj.country_code.lower())
+    country_flag.allow_tags = True
 
-    list_display = ('country', country_flag, 'address', 'geo_type')
+    list_display = ('address', 'country', country_flag, 'geo_type')
     save_on_top = True
     search_fields = [
         'country',

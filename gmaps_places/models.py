@@ -2,7 +2,7 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils.encoding import smart_str
 from gmaps.fields import GmapsField, GeotypeField
-from utils import country_to_continent
+from utils import country_to_continent, CONTINENTS
 
 import urllib
 import urllib2
@@ -152,11 +152,17 @@ class GmapsPlace(models.Model):
 
     def save(self, *args, **kwargs):
         url = ''
-        # set continent
-        continent = country_to_continent(self.country)
-        if continent is None:
-            raise NotImplementedError(
-                "The Country you are looking for is not in our list")
+        if self.country in (None, u""):
+            if slugify(self.address.lower()) in [x[0] for x in CONTINENTS]:
+                continent = self.address
+            else:
+                continent = u'undefined'
+        else:
+            continent = country_to_continent(self.country)
+            if continent is None:
+                raise NotImplementedError(
+                    u"The Country you are looking for for the current address '{}' is not in our list".format(self.address))
+
         url += '/{}'.format(slugify(continent))
         gmap_ent, create = GmapsItem.objects.get_or_create(
             geo_type='continent', name=continent,
