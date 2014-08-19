@@ -60,16 +60,21 @@ class TestPlace(models.Model):
 ## Example
 1. Add the GmapsPlace model as FK of your location attribute
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot1-models.png)
+
 2. Add locations simply typing your address and clicking on the choosen marker, the app will fill the administrative fields.
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot2-address.png)
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot2b-address.png)
+
 3. Use geo_type to force a specific administrative level in case of homonymous. Example: "Rome" is administrative_area_level_2, _3 and locality, but you need just administrative_area_level_2 depth.
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot3-geo_type.png)
+
 4. Manage GmapsPlaces in their admin 
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot4-gmaps_places_admin.png)
+
 5. Manage and Customize GmapsItems in their admin 
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5-gmaps_items_admin.png)
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5b-gmaps_items_admin.png)
+
 6. GmapsPlace has all the administrative infos, while GmapsItem has all the gmaps data. Remember to use 'select_related' in your query.
 ```py
 >>> from test_places.models import TestPlace
@@ -84,6 +89,7 @@ u'IT'
 '{"northeast": {"lat": 47.092, "lng": 18.5205015}, "southwest": {"lat": 35.4929201, "lng": 6.6267201}}'
 ```
 ..and so on. Check all attributes, properties and methods available directly on the model.
+
 7. The app includes the useful 'flags' sprite and css (http://flag-sprites.com/), so you can automatic generate flags in this easy way (or just use **country_code** in your custom flags tool)
 
 your_template.html
