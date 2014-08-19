@@ -183,3 +183,6 @@ class GmapsPlace(models.Model):
                 gmap_ent.save()
                 setattr(self, u"{}_item".format(tp), gmap_ent)
         super(GmapsPlace, self).save(*args, **kwargs)
+
+    class Meta:
+        ordering = ('country', 'address')
