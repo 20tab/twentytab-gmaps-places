@@ -73,7 +73,7 @@ class TestPlace(models.Model):
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot4-gmaps_places_admin.png)
 
-5. Manage and Customize GmapsItems in their admin panels.
+5. Manage and customize GmapsItems in their admin panels.
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5-gmaps_items_admin.png)
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5b-gmaps_items_admin.png)
