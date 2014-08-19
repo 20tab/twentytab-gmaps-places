@@ -1,15 +1,12 @@
-UNDER COSTRUCTION
-=================
-
-
 twentytab-gmaps-places
 =====================
 
 A django app on top of twentytab-gmaps and google maps api v3 to manage geolocation and markers with all the administrative level details
+*Note: this app is a alpha version. It needs tests and generalization. Feel free to contribute or use just some logic according to your needs.*
 
 ## Installation
 
-Use the following command: <b><i>pip install twentytab-gmaps-places</i></b>
+Use the following command: ```pip install twentytab-gmaps-places```
 
 ## Configuration
 
