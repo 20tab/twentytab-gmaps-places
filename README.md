@@ -70,7 +70,7 @@ class TestPlace(models.Model):
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot4-gmaps_places_admin.png)
 - 5. Manage and Customize GmapsItems in their admin 
 ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5-gmaps_items_admin.png)
-![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot6-gmaps_items_admin.png)
+![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot5b-gmaps_items_admin.png)
 - 6. GmapsPlace has all the administrative infos, while GmapsItem has all the gmaps data. Remember to use 'select_related' in your query.
 ```py
 >>> from test_places.models import TestPlace
@@ -92,4 +92,3 @@ your_template.html
 ...
 <img src="{{ STATIC_URL }}flags/blank.png" class="flag flag-{{test_place.location.country_code|lower}}">
 ```
-![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot7-flags.png)
