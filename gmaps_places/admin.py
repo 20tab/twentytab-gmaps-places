@@ -1,6 +1,9 @@
 from django.contrib import admin
+from django.contrib import messages
 from django.conf import settings
+from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
 from models import GmapsPlace, GmapsItem
+
 import time
 
 
@@ -28,13 +31,28 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
             settings.STATIC_URL, obj.country_code.lower())
     country_flag.allow_tags = True
 
+    def process_address(modeladmin, request, queryset):
+        for gitem in queryset:
+            try:
+                gitem.process_address()
+            except (NoResults, RequestDenied, InvalidRequest, RateLimitExceeded) as e:
+                msg_string = u"{} for url {}. Results: {}".format(
+                    e.message['status'], e.message['url'], e.message['results'])
+                messages.error(request, msg_string)
+            else:
+                time.sleep(0.1)
+
     list_display = ('address', 'country', country_flag, 'geo_type')
     save_on_top = True
+    actions = (process_address,)
     search_fields = [
         'country',
         'administrative_area_level_1',
         'administrative_area_level_2',
         'administrative_area_level_3',
+        'administrative_area_level_4',
+        'administrative_area_level_5',
+        'neighborhood', 'postal_code',
         'locality', 'sublocality', 'address', 'geocode']
     fieldsets = (
         (None, {
@@ -44,7 +62,13 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
                 ('country', 'administrative_area_level_1',
                     'administrative_area_level_2',
                     'administrative_area_level_3',
-                    'locality', 'sublocality'),
+                    'administrative_area_level_4',
+                    'administrative_area_level_5',
+                    'locality', 'sublocality',
+                    'neighborhood', 'premise', 'subpremise',
+                    'postal_code', 'natural_feature', 'airport',
+                    'park', 'street_address', 'street_number',
+                    'route', 'intersection',),
             )
         }
         ),

@@ -1,17 +1,27 @@
+from . import conf
+from django.conf import settings
 from django.db import models
 from django.template.defaultfilters import slugify
-from django.utils.encoding import smart_str
-from gmaps.fields import GmapsField, GeotypeField
+# from django.utils.encoding import smart_str
+from gmapsmarkers.fields import GmapsField, GeotypeField
+from gmaps import Geocoding
+from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
 from utils import country_to_continent, CONTINENTS
 
-import urllib
-import urllib2
 import json
 
-ALLOWED_TYPES = (
-    'country', 'administrative_area_level_1',
-    'administrative_area_level_2', 'administrative_area_level_3',
-    'locality', 'sublocality',)
+ALLOWED_TYPES = settings.GMAPS_PLACES_ALLOWED_TYPES
+URL_TYPES = settings.GMAPS_PLACES_URL_TYPES
+GMAPS_DEFAULT_CLIENT_PARAMS = {
+    'sensor': True,
+    'use_https': True,
+    'api_key': settings.GMAPS_API_KEY,
+}
+GMAPS_DEFAULT_GEOCODE_PARAMS = {
+    'language': settings.GMAPS_LANGUAGE_CODE,
+}
+
+gmaps_api = Geocoding(**GMAPS_DEFAULT_CLIENT_PARAMS)
 
 
 class GmapsItem(models.Model):
@@ -38,8 +48,8 @@ class GmapsItem(models.Model):
     @property
     def geometry_latlng(self):
         try:
-            results = (json.loads(self.response_json))['results'][0]
-        except ValueError:
+            results = (json.loads(self.response_json))[0]
+        except (ValueError, KeyError):
             return None
         else:
             lat = results['geometry']['location']['lat']
@@ -49,8 +59,8 @@ class GmapsItem(models.Model):
     @property
     def geometry_bounds(self):
         try:
-            results = (json.loads(self.response_json))['results'][0]
-        except ValueError:
+            results = (json.loads(self.response_json))[0]
+        except (ValueError, KeyError):
             return None
         else:
             try:
@@ -64,29 +74,24 @@ class GmapsItem(models.Model):
     @property
     def geometry_viewport(self):
         try:
-            results = (json.loads(self.response_json))['results'][0]
-        except ValueError:
+            results = (json.loads(self.response_json))[0]
+        except (ValueError, KeyError):
             return None
         else:
             viewport = results['geometry']['viewport']
             return json.dumps(viewport)
 
     def get_response_json(self):
-        location = self.geo_address
-        location = urllib.quote_plus(smart_str(location))
-        url = "".join(('http://maps.googleapis.com/maps/api/geocode/json',
-                      '?address={}&sensor=false'.format(location)))
-        response = urllib2.urlopen(url).read()
-        result = json.loads(response)
-        if result['status'] == 'OK':
-            return response
+        result = gmaps_api.geocode(self.geo_address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
+        if result:
+            return json.dumps(result)
         else:
             return ''
 
     def get_short_name(self):
         if self.response_json is None or self.response_json == "":
             return ""
-        response_json = (json.loads(self.response_json))['results'][0]
+        response_json = (json.loads(self.response_json))[0]
         for add in response_json['address_components']:
             if self.geo_type in add['types']:
                 return add['short_name']
@@ -108,37 +113,63 @@ class GmapsPlace(models.Model):
     administrative_area_level_1 = models.CharField(max_length=255, blank=True)
     administrative_area_level_2 = models.CharField(max_length=255, blank=True)
     administrative_area_level_3 = models.CharField(max_length=255, blank=True)
+    administrative_area_level_4 = models.CharField(max_length=255, blank=True)
+    administrative_area_level_5 = models.CharField(max_length=255, blank=True)
     locality = models.CharField(max_length=255, blank=True)
     sublocality = models.CharField(max_length=255, blank=True)
+    neighborhood = models.CharField(max_length=255, blank=True)
+    premise = models.CharField(max_length=255, blank=True)
+    subpremise = models.CharField(max_length=255, blank=True)
+    postal_code = models.CharField(max_length=255, blank=True)
+    natural_feature = models.CharField(max_length=255, blank=True)
+    airport = models.CharField(max_length=255, blank=True)
+    park = models.CharField(max_length=255, blank=True)
+    street_address = models.CharField(max_length=255, blank=True)
+    street_number = models.CharField(max_length=255, blank=True)
+    route = models.CharField(max_length=255, blank=True)
+    intersection = models.CharField(max_length=255, blank=True)
     address = GmapsField(plugin_options={
         'geocode_field': 'geocode', 'type_field': 'geo_type',
         'allowed_types': ALLOWED_TYPES},
         select2_options={'width': '300px'},
-        help_text=u"Type the address you're looking for and click on the red marker to select it.")
+        help_text=(u"Type the address you're looking for and click "
+                   u"on the red marker to select it."))
     geocode = models.CharField(max_length=255, blank=True)
     geo_type = GeotypeField(blank=True)
 
     continent_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_continent_set', null=True, blank=True)
+        related_name='gmapsplace_continent_set', null=True, blank=True)
     country_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_country_set', null=True, blank=True)
+        related_name='gmapsplace_country_set', null=True, blank=True)
     administrative_area_level_1_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_aal1_set', null=True, blank=True)
+        related_name='gmapsplace_aal1_set', null=True, blank=True)
     administrative_area_level_2_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_aal2_set', null=True, blank=True)
+        related_name='gmapsplace_aal2_set', null=True, blank=True)
     administrative_area_level_3_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_aal3_set', null=True, blank=True)
+        related_name='gmapsplace_aal3_set', null=True, blank=True)
+    administrative_area_level_4_item = models.ForeignKey(
+        GmapsItem, on_delete=models.SET_NULL,
+        related_name='gmapsplace_aal4_set', null=True, blank=True)
+    administrative_area_level_5_item = models.ForeignKey(
+        GmapsItem, on_delete=models.SET_NULL,
+        related_name='gmapsplace_aal5_set', null=True, blank=True)
     locality_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_locality_set', null=True, blank=True)
+        related_name='gmapsplace_locality_set', null=True, blank=True)
     sublocality_item = models.ForeignKey(
         GmapsItem, on_delete=models.SET_NULL,
-        related_name='gmapplace_sublocality_set', null=True, blank=True)
+        related_name='gmapsplace_sublocality_set', null=True, blank=True)
+    neighborhood_item = models.ForeignKey(
+        GmapsItem, on_delete=models.SET_NULL,
+        related_name='gmapsplace_neighborhood_set', null=True, blank=True)
+    postal_code_item = models.ForeignKey(
+        GmapsItem, on_delete=models.SET_NULL,
+        related_name='gmapsplace_postal_code_set', null=True, blank=True)
 
     @property
     def country_code(self):
@@ -146,6 +177,25 @@ class GmapsPlace(models.Model):
             return self.country_item.short_name
         else:
             return ""
+
+    def process_address(self):
+        try:
+            result = gmaps_api.geocode(self.address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
+        except (NoResults, RequestDenied, InvalidRequest, RateLimitExceeded) as e:
+            raise e
+        else:
+            lat = result[0]['geometry']['location']['lat']
+            lng = result[0]['geometry']['location']['lng']
+            self.geocode = u"{},{}".format(lat, lng)
+            address_components = result[0]['address_components']
+            set_types = set(ALLOWED_TYPES)
+            for add in address_components:
+                inters = set_types.intersection(set(add['types']))
+                if inters:
+                    print('inters SI')
+                    for t in inters:
+                        setattr(self, t, u"{}".format(add['long_name']))
+            self.save()
 
     def __unicode__(self):
         return u'{}'.format(self.address)
@@ -161,7 +211,8 @@ class GmapsPlace(models.Model):
             continent = country_to_continent(self.country)
             if continent is None:
                 raise NotImplementedError(
-                    u"The Country you are looking for for the current address '{}' is not in our list".format(self.address))
+                    (u"The Country you are looking for for the current "
+                     u"address '{}' is not in our list".format(self.address)))
 
         url += '/{}'.format(slugify(continent))
         gmap_ent, create = GmapsItem.objects.get_or_create(
@@ -169,7 +220,7 @@ class GmapsPlace(models.Model):
             slug=slugify(continent), url=url)
         self.continent_item = gmap_ent
         # set all the other types
-        for tp in ALLOWED_TYPES:
+        for tp in URL_TYPES:
             curr_type = getattr(self, tp)
             url_to_add = slugify(curr_type) if curr_type not in (None, '')\
                 else u"-"

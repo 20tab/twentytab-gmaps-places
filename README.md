@@ -32,7 +32,32 @@ STATIC_URL = u'/static/'
 JQUERY_LIB = 'path_to_jquery'
 SELECT2_LIB = 'path_to_select2_js'
 SELECT2_CSS_LIB = 'path_to_select2_css'
+GMAPS_LANGUAGE_CODE = u'en'
 
+```
+
+You can customize the gmaps types used to fill the
+utility fields and used in your url system.
+**Important**: be sure to set this parameters 
+according to the gmaps types
+https://developers.google.com/maps/documentation/javascript/geocoding#GeocodingAddressTypes
+and gmaps_places models
+https://github.com/20tab/twentytab-gmaps-places/blob/master/gmaps_places/models.py
+
+Default values are:
+```py
+GMAPS_PLACES_ALLOWED_TYPES = ( 
+    'country', 'administrative_area_level_1',
+    'administrative_area_level_2', 'administrative_area_level_3',
+    'administrative_area_level_4', 'administrative_area_level_5',
+    'locality', 'sublocality', 'neighborhood', 'premise', 'subpremise',
+    'postal_code', 'natural_feature', 'airport', 'park',
+    'street_address', 'route', 'intersection')
+
+GMAPS_PLACES_URL_TYPES = ( 
+    'country', 'administrative_area_level_1',
+    'administrative_area_level_2', 'administrative_area_level_3',
+    'locality', 'sublocality')
 ```
 
 
@@ -60,7 +85,7 @@ class TestPlace(models.Model):
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot1-models.png)
 
-2. Add a location simply by typing the address and clicking on the choosen marker, the app will automatically fill the administrative fields.
+2. Add a location simply by typing the address and clicking on the choosen marker, the app will automatically fill the administrative fields. *(the image is not updated to the latest version)*
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot2-address.png)
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot2b-address.png)
@@ -69,7 +94,7 @@ class TestPlace(models.Model):
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot3-geo_type.png)
 
-4. Manage GmapsPlaces in their admin panels.
+4. Manage GmapsPlaces in their admin panels *(the image is not updated to the lates version)*
 
     ![ScreenShot](https://raw.github.com/20tab/twentytab-gmaps-places/master/img/screenshot4-gmaps_places_admin.png)
 
@@ -101,4 +126,36 @@ class TestPlace(models.Model):
     <link rel="stylesheet" href="{{ STATIC_URL }}flags/flags.css">
     ...
     <img src="{{ STATIC_URL }}flags/blank.png" class="flag flag-{{test_place.location.country_code|lower}}">
+    ```
+8. As a further utility, you can use the GmapsPlacesForm in your frontend template in order to show just the address input with a map in your form without showing the foreign-key and the utility gmaps' fields.
+
+    ```py
+    from django.shortcuts import render_to_response
+    from django.template import RequestContext
+    from gmaps_places.forms import GmapsPlacesForm
+    from test_places.forms import TestPlaceForm
+    from gmaps_places.models import GmapsPlace
+    from test_places.models import TestPlace
+
+
+    def home(request):
+        status = None
+        if request.method == 'POST':
+            gpform = GmapsPlacesForm(request.POST)
+            test_places_form = TestPlaceForm(request.POST)
+            if gpform.is_valid() and test_places_form.is_valid():
+                new_gp, created = GmapsPlace.objects.get_or_create(**gpform.cleaned_data)
+                new_tp, created = TestPlace.objects.get_or_create(
+                    location=new_gp, **test_places_form.cleaned_data)
+                status = 'OK'
+            else:
+                status = 'KO'
+
+        gpform = GmapsPlacesForm()
+        test_places_form = TestPlaceForm()
+        return render_to_response(
+            'gptest.html',
+            {'gpform': gpform, 'test_places_form': test_places_form, 'status': status},
+            context_instance=RequestContext(request)
+        )  
     ```

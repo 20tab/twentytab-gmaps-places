@@ -12,7 +12,8 @@ setup(
     install_requires=[
         'Django >=1.6',
         'django-appconf>=0.6',
-        'twentytab-gmaps>=0.12',
+        'twentytab-gmapsmarkers>=0.15',
+        'python-gmaps',
     ],
     packages=find_packages(),
     include_package_data=True,
