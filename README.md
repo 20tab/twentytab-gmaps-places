@@ -14,7 +14,7 @@ Use the following command: ```pip install twentytab-gmaps-places```
 ```py
 INSTALLED_APPS = {
     ...,
-    'gmaps',
+    'gmapsmarkers',
     'gmaps_places'
     ...
 }

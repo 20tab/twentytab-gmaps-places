@@ -187,12 +187,13 @@ class GmapsPlace(models.Model):
             lat = result[0]['geometry']['location']['lat']
             lng = result[0]['geometry']['location']['lng']
             self.geocode = u"{},{}".format(lat, lng)
+            formatted_address = result[0]['formatted_address']
+            self.address = formatted_address
             address_components = result[0]['address_components']
             set_types = set(ALLOWED_TYPES)
             for add in address_components:
                 inters = set_types.intersection(set(add['types']))
                 if inters:
-                    print('inters SI')
                     for t in inters:
                         setattr(self, t, u"{}".format(add['long_name']))
             self.save()
