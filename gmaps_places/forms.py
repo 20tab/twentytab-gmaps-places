@@ -36,9 +36,11 @@ class GmapsPlacesForm(ModelForm):
             settings.SELECT2_LIB,
             '{}gmapsmarkers/js/gmaps.js'.format(settings.STATIC_URL),
             '{}gmapsmarkers/js/gmaps__init.js'.format(settings.STATIC_URL),
-            '{}gmaps_places/gmaps_places_form.js'.format(settings.STATIC_URL),
+            '{}gmaps_places/gmaps_places.js'.format(settings.STATIC_URL),
         )
-        css = {u"all": (
-            settings.SELECT2_CSS_LIB,
-            "{}gmapsmarkers/css/gmaps.css".format(settings.STATIC_URL),
-        )}
+        css = {
+            "all": (
+                settings.SELECT2_CSS_LIB,
+                "{}gmapsmarkers/css/gmaps.css".format(settings.STATIC_URL),
+            )
+        }

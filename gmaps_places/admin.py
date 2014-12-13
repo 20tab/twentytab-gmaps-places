@@ -75,12 +75,21 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
     )
 
     class Media:
-        css = {
-            "all": ('{}gmaps_places/flags/flags.css'.format(settings.STATIC_URL),),
-        }
         js = (
+            settings.JQUERY_LIB,
+            settings.SELECT2_LIB,
+            '{}gmapsmarkers/js/gmaps.js'.format(settings.STATIC_URL),
+            '{}gmapsmarkers/js/gmaps__init.js'.format(settings.STATIC_URL),
             '{}gmaps_places/gmaps_places.js'.format(settings.STATIC_URL),
         )
+        css = {
+            "all": (
+                settings.SELECT2_CSS_LIB,
+                "{}gmapsmarkers/css/gmaps.css".format(settings.STATIC_URL),
+                '{}gmaps_places/flags/flags.css'.format(settings.STATIC_URL),
+            )
+        }
+
 
 admin.site.register(GmapsPlace, GmapsPlaceAdmin)
 admin.site.register(GmapsItem, GmapsItemAdmin)

@@ -1,4 +1,4 @@
-django.jQuery(function($){
+jQuery(function($){
 
     /* set array with geographic types to fill  */
     var types_arr = ["country", "administrative_area_level_1",
