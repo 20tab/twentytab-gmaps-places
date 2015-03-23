@@ -1,4 +1,4 @@
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 # ISO 3166-1 country names and codes adapted from http://opencountrycodes.appspot.com/python/
 # country and continents lists taken from https://github.com/20tab/twentytab-utils/blob/master/twentytab/countries.py
 
