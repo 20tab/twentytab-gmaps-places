@@ -47,6 +47,7 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
     actions = (process_address,)
     search_fields = [
         'country',
+        'place_id',
         'administrative_area_level_1',
         'administrative_area_level_2',
         'administrative_area_level_3',
@@ -59,6 +60,7 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
             'fields': (
                 ('address',),
                 ('geocode', 'geo_type'),
+                ('place_id',),
                 ('country', 'administrative_area_level_1',
                     'administrative_area_level_2',
                     'administrative_area_level_3',

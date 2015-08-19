@@ -144,18 +144,40 @@ class TestPlace(models.Model):
             gpform = GmapsPlacesForm(request.POST)
             test_places_form = TestPlaceForm(request.POST)
             if gpform.is_valid() and test_places_form.is_valid():
-                new_gp, created = GmapsPlace.objects.get_or_create(**gpform.cleaned_data)
+                place_id = gpform.cleaned_data['place_id']
+                new_gp, created = GmapsPlace.objects.get_or_create(
+                    place_id=place_id, defaults=gpform.cleaned_data)
                 new_tp, created = TestPlace.objects.get_or_create(
                     location=new_gp, **test_places_form.cleaned_data)
                 status = 'OK'
             else:
                 status = 'KO'
-
-        gpform = GmapsPlacesForm()
-        test_places_form = TestPlaceForm()
+        else:
+            gpform = GmapsPlacesForm()
+            test_places_form = TestPlaceForm()
         return render_to_response(
             'gptest.html',
             {'gpform': gpform, 'test_places_form': test_places_form, 'status': status},
             context_instance=RequestContext(request)
-        )  
+        )
+    ```
+
+    ```django
+    <html>
+        <head>
+            <title>GmapsPlaces Test</title>
+            {{gpform.media}}
+        </head>
+        <body>
+            <h1>TEST GmapsPlaces</h1>
+            <h2>Status: {{status}}</h2>
+            <form method="post" action="">{% csrf_token %}
+                {{test_places_form.as_p}}
+                {{gpform.as_p}}
+                <!-- remember to explicitly print hidden inputs if you
+                     are not using the whole form rendering -->
+                <p><input type="submit" value="Submit"></p>
+            </form>
+        </body>
+    </html>
     ```

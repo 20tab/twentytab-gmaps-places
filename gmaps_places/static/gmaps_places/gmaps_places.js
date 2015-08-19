@@ -17,9 +17,14 @@ jQuery(function($){
     types_arr.forEach(function(geotype){
         $("#id_"+geotype).attr("readonly","readonly");
     });
+    /* set place_id readonly */
+    $("#id_place_id").attr("readonly", "readonly");
 
     $("#id_address").on('gmaps-click-on-marker', function(e, data){
-        /*clean previous types */
+        /* set place_id */
+        $("#id_place_id").val(data.place_id);
+
+        /* clean previous types */
         types_arr.forEach(function(geotype){
             $("#id_"+geotype).val("");
             $("#id_"+geotype).data('original', '');

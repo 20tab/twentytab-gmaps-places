@@ -1,23 +1,20 @@
-from django.forms import ModelForm
+from django import forms
 from django.conf import settings
 from gmaps_places.models import GmapsPlace
 
+HIDDEN_FIELDS = (
+    'place_id', 'country', 'administrative_area_level_1',
+    'administrative_area_level_2', 'administrative_area_level_3',
+    'administrative_area_level_4', 'administrative_area_level_5',
+    'locality', 'sublocality', 'neighborhood', 'premise', 'subpremise',
+    'postal_code', 'natural_feature', 'airport', 'park',
+    'street_address', 'route', 'intersection',
+    'geocode')  # , 'geo_type')
 
-class GmapsPlacesForm(ModelForm):
 
-    def __init__(self, *args, **kwargs):
-        super(GmapsPlacesForm, self).__init__(*args, **kwargs)
-        hidden_fields = (
-            'country', 'administrative_area_level_1',
-            'administrative_area_level_2', 'administrative_area_level_3',
-            'administrative_area_level_4', 'administrative_area_level_5',
-            'locality', 'sublocality', 'neighborhood', 'premise', 'subpremise',
-            'postal_code', 'natural_feature', 'airport', 'park',
-            'street_address', 'route', 'intersection',
-            'geocode')  # , 'geo_type')
-        for field in hidden_fields:
-            self.fields[field].widget.attrs['hidden'] = True
-            self.fields[field].label = u""
+class GmapsPlacesForm(forms.ModelForm):
+
+    place_id = forms.CharField(required=True, widget=forms.HiddenInput())
 
     class Meta:
         model = GmapsPlace
@@ -29,6 +26,7 @@ class GmapsPlacesForm(ModelForm):
             'postal_code', 'natural_feature', 'airport', 'park',
             'street_address', 'route', 'intersection',
             'geocode']  # , 'geo_type']
+        widgets = {x: forms.HiddenInput() for x in HIDDEN_FIELDS}
 
     class Media:
         js = (

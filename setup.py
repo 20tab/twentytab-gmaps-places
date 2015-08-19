@@ -4,7 +4,7 @@ import gmaps_places
 setup(
     name='twentytab-gmaps-places',
     version=gmaps_places.__version__,
-    description='A django app on top of twentytab-gmaps and google maps api v3 to manage geolocation and markers with all the administrative level details',
+    description='A django app on top of twentytab-gmapsmarkers and google maps api v3 to manage geolocation and markers with all the administrative level details',
     author='20tab S.r.l.',
     author_email='info@20tab.com',
     url='https://github.com/20tab/twentytab-gmaps-places',

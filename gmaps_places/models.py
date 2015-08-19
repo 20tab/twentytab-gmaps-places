@@ -27,9 +27,9 @@ gmaps_api = Geocoding(**GMAPS_DEFAULT_CLIENT_PARAMS)
 class GmapsItem(models.Model):
     geo_type = models.CharField(max_length=100)
     slug = models.SlugField()
+    place_id = models.CharField(unique=True, max_length=255)
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True)
-    # geocode = models.CharField(max_length=255, blank=True)
     response_json = models.TextField(blank=True)
     use_viewport = models.BooleanField(default=True)
     url = models.CharField(max_length=255, blank=True)
@@ -97,6 +97,12 @@ class GmapsItem(models.Model):
                 return add['short_name']
         return ""
 
+    def get_place_id(self):
+        if self.response_json is None or self.response_json == "":
+            return ""
+        response_json = (json.loads(self.response_json))[0]
+        return response_json['place_id']
+
     def __unicode__(self):
         return u"{}({})".format(self.slug, self.geo_type)
 
@@ -104,6 +110,7 @@ class GmapsItem(models.Model):
         if not self.response_json:
             self.response_json = self.get_response_json()
             self.short_name = self.get_short_name()
+            self.place_id = self.get_place_id()
 
         super(GmapsItem, self).save(*args, **kwargs)
 
@@ -135,6 +142,7 @@ class GmapsPlace(models.Model):
         help_text=(u"Type the address you're looking for and click "
                    u"on the red marker to select it."))
     geocode = models.CharField(max_length=255, blank=True)
+    place_id = models.CharField(unique=True, max_length=255)
     geo_type = GeotypeField(blank=True)
 
     continent_item = models.ForeignKey(
@@ -189,6 +197,7 @@ class GmapsPlace(models.Model):
             self.geocode = u"{},{}".format(lat, lng)
             formatted_address = result[0]['formatted_address']
             self.address = formatted_address
+            self.place_id = result[0]['place_id']
             address_components = result[0]['address_components']
             set_types = set(ALLOWED_TYPES)
             for add in address_components:
