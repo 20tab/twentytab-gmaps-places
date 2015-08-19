@@ -10,7 +10,7 @@ setup(
     url='https://github.com/20tab/twentytab-gmaps-places',
     license='MIT License',
     install_requires=[
-        'Django >=1.6',
+        # 'Django >=1.6',
         'django-appconf>=0.6',
         'twentytab-gmapsmarkers>=0.16',
         'python-gmaps',
