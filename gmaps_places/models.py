@@ -10,6 +10,7 @@ from utils import country_to_continent, CONTINENTS
 
 import uuid
 import json
+import time
 
 ALLOWED_TYPES = settings.GMAPS_PLACES_ALLOWED_TYPES
 URL_TYPES = settings.GMAPS_PLACES_URL_TYPES
@@ -83,11 +84,22 @@ class GmapsItem(models.Model):
             return json.dumps(viewport)
 
     def get_response_json(self):
-        result = gmaps_api.geocode(self.geo_address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
-        if result:
-            return json.dumps(result)
-        else:
-            return ''
+        attempts = 0
+        success = False
+        while success is not True and attempts < 3:
+            attempts += 1
+            try:
+                result = gmaps_api.geocode(self.geo_address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
+            except (NoResults, RequestDenied, InvalidRequest) as e:
+                raise e
+            except RateLimitExceeded as e:
+                time.sleep(1)
+                continue
+            else:
+                success = True
+                if result:
+                    return json.dumps(result)
+        return ''
 
     def get_short_name(self):
         if self.response_json is None or self.response_json == "":
