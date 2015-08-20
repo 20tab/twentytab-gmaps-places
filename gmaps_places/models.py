@@ -8,6 +8,7 @@ from gmaps import Geocoding
 from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
 from utils import country_to_continent, CONTINENTS
 
+import uuid
 import json
 
 ALLOWED_TYPES = settings.GMAPS_PLACES_ALLOWED_TYPES
@@ -27,7 +28,7 @@ gmaps_api = Geocoding(**GMAPS_DEFAULT_CLIENT_PARAMS)
 class GmapsItem(models.Model):
     geo_type = models.CharField(max_length=100)
     slug = models.SlugField()
-    place_id = models.CharField(unique=True, max_length=255)
+    place_id = models.CharField(max_length=255)
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True)
     response_json = models.TextField(blank=True)
@@ -111,8 +112,10 @@ class GmapsItem(models.Model):
             self.response_json = self.get_response_json()
             self.short_name = self.get_short_name()
             self.place_id = self.get_place_id()
-
         super(GmapsItem, self).save(*args, **kwargs)
+
+    class Meta:
+        unique_together = ('place_id', 'geo_type')
 
 
 class GmapsPlace(models.Model):
@@ -223,11 +226,12 @@ class GmapsPlace(models.Model):
                 raise NotImplementedError(
                     (u"The Country you are looking for for the current "
                      u"address '{}' is not in our list".format(self.address)))
-
+        # set the "home-made" continent
         url += '/{}'.format(slugify(continent))
         gmap_ent, create = GmapsItem.objects.get_or_create(
             geo_type='continent', name=continent,
-            slug=slugify(continent), url=url)
+            slug=slugify(continent), url=url,
+            defaults={'place_id': str(uuid.uuid4()), })
         self.continent_item = gmap_ent
         # set all the other types
         for tp in URL_TYPES:
@@ -236,12 +240,15 @@ class GmapsPlace(models.Model):
                 else u"-"
             url += '/{}'.format(url_to_add)
             if curr_type:
-                geocode = self.geocode if self.geo_type == tp else None
+                # geocode = self.geocode if self.geo_type == tp else None
                 gmap_ent, create = GmapsItem.objects.get_or_create(
                     geo_type=tp, name=curr_type,
-                    slug=slugify(curr_type), url=url)
-                gmap_ent.geocode = geocode
-                gmap_ent.save()
+                    slug=slugify(curr_type), url=url,
+                    defaults={
+                        'place_id': str(uuid.uuid4()),
+                    })
+                # gmap_ent.geocode = geocode
+                # gmap_ent.save()
                 setattr(self, u"{}_item".format(tp), gmap_ent)
         super(GmapsPlace, self).save(*args, **kwargs)
 

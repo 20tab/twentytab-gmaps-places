@@ -17,7 +17,7 @@ class GmapsItemAdmin(admin.ModelAdmin):
 
     list_display = (
         'geo_type', 'slug', 'name', 'short_name', 'url',
-        'geo_address', 'geometry_latlng',
+        'geo_address', 'geometry_latlng', 'place_id',
         'geometry_viewport', 'geometry_bounds')
     list_filter = ('geo_type',)
     search_fields = ['slug', 'name', 'short_name', 'url', 'geo_type']
@@ -42,7 +42,7 @@ class GmapsPlaceAdmin(admin.ModelAdmin):
             else:
                 time.sleep(0.1)
 
-    list_display = ('address', 'country', country_flag, 'geo_type')
+    list_display = ('address', 'country', country_flag, 'geo_type', 'place_id')
     save_on_top = True
     actions = (process_address,)
     search_fields = [
