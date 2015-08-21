@@ -236,8 +236,8 @@ class GmapsPlace(models.Model):
             continent = country_to_continent(self.country)
             if continent is None:
                 raise NotImplementedError(
-                    (u"The Country you are looking for for the current "
-                     u"address '{}' is not in our list".format(self.address)))
+                    (u"The Country you are looking for, related to the current "
+                     u"address '{}', is not in our list".format(self.address)))
         # set the "home-made" continent
         url += '/{}'.format(slugify(continent))
         gmap_ent, create = GmapsItem.objects.get_or_create(
@@ -255,9 +255,9 @@ class GmapsPlace(models.Model):
                 # geocode = self.geocode if self.geo_type == tp else None
                 gmap_ent, create = GmapsItem.objects.get_or_create(
                     geo_type=tp, name=curr_type,
-                    slug=slugify(curr_type), url=url,
+                    slug=slugify(curr_type),
                     defaults={
-                        'place_id': str(uuid.uuid4()),
+                        'place_id': str(uuid.uuid4()), 'url': url,
                     })
                 # gmap_ent.geocode = geocode
                 # gmap_ent.save()
