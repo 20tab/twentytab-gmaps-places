@@ -83,7 +83,7 @@ class GmapsItem(models.Model):
             return unicode(self.name)
         name = self.short_name if self.short_name != "" else self.name
         geo_address = (
-            u"{} ,".format(name)
+            u"{}, ".format(name)
             + (", ".join((self.url).split("/")[2:-1][::-1])).strip(" -,"))
         return unicode(geo_address)
 
