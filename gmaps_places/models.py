@@ -189,8 +189,14 @@ class GmapsItem(models.Model):
         return ", ".join((url).split("/")[2:][::-1]).strip(" -,")
         # [2:] to skip the empty space and continent
 
+    def _fix_url(self):
+        prefix_components = self.url.split("/")[:-1]
+        my_url = slugify(self.name)
+        prefix_components.append(my_url)
+        return "/" + "/".join(prefix_components)
+
     @classmethod
-    def get_or_create_from_geocode(cls, lat, lng, geo_type, url=''):
+    def get_or_create_from_geocode(cls, lat, lng, geo_type, url='', bkp_name=''):
         try:
             response = gmaps_api_reverse(
                 float(lat), float(lng), result_type=[geo_type, ],
@@ -205,7 +211,7 @@ class GmapsItem(models.Model):
             if geo_type in res['types']:
                 found = True
                 try:
-                    new_gmi = GmapsItem.objects.get(place_id=res['place_id'])
+                    new_gmi = GmapsItem.objects.get(place_id=res['place_id'], geo_type=geo_type)
                 except GmapsItem.DoesNotExist:
                     place_id = res['place_id']
                     lat = res['geometry']['location']['lat']
@@ -220,6 +226,7 @@ class GmapsItem(models.Model):
                             short_name = addr['short_name']
                             slug = slugify(name)
                             break
+                    url_to_append = "{}/{}".format(url, slug)
                     new_gmi = GmapsItem.objects.create(
                         geo_type=geo_type,
                         slug=slug,
@@ -228,7 +235,7 @@ class GmapsItem(models.Model):
                         name=name,
                         short_name=short_name,
                         response_json=json.dumps(res),
-                        url=url if url not in (None, '') else "/{}".format(slug)
+                        url=url_to_append
                     )
                 else:
                     break
@@ -257,13 +264,14 @@ class GmapsItem(models.Model):
                           'geocode': "{},{}".format(lat, lng)})
         elif not found:
             response = gmaps_api_geocode(
-                address=cls._build_address_from_url(url),
+                address=cls._build_address_from_url(url + slugify(bkp_name)),
                 **GMAPS_DEFAULT_GEOCODE_PARAMS)
             for res in response:
                 if geo_type in res['types']:
                     found = True
                     try:
-                        new_gmi = GmapsItem.objects.get(place_id=res['place_id'])
+                        new_gmi = GmapsItem.objects.get(place_id=res['place_id'],
+                                                        geo_type=geo_type)
                     except GmapsItem.DoesNotExist:
                         place_id = res['place_id']
                         lat = res['geometry']['location']['lat']
@@ -278,6 +286,7 @@ class GmapsItem(models.Model):
                                 short_name = addr['short_name']
                                 slug = slugify(name)
                                 break
+                        url_to_append = "{}/{}".format(url, slug)
                         new_gmi = GmapsItem.objects.create(
                             geo_type=geo_type,
                             slug=slug,
@@ -286,7 +295,7 @@ class GmapsItem(models.Model):
                             name=name,
                             short_name=short_name,
                             response_json=json.dumps(res),
-                            url=url if url not in (None, '') else "/{}".format(slug)
+                            url=url_to_append
                         )
                     else:
                         break
@@ -429,13 +438,23 @@ class GmapsPlace(models.Model):
             # set all the other types
             for tp in URL_TYPES:
                 curr_type = getattr(self, tp)
-                url_to_add = slugify(curr_type) if curr_type not in (None, '')\
-                    else u"-"
-                url += '/{}'.format(url_to_add)
                 if curr_type:
                     gmap_ent = GmapsItem.get_or_create_from_geocode(
-                        self.lat, self.lng, tp, url)
+                        self.lat, self.lng, tp, url, bkp_name=curr_type)
                     setattr(self, u"{}_item".format(tp), gmap_ent)
+                    url = gmap_ent.url
+                else:
+                    url += '/-'
+
+            # for tp in URL_TYPES:
+            #     curr_type = getattr(self, tp)
+            #     url_to_add = slugify(curr_type) if curr_type not in (None, '')\
+            #         else u"-"
+            #     url += '/{}'.format(url_to_add)
+            #     if curr_type:
+            #         gmap_ent = GmapsItem.get_or_create_from_geocode(
+            #             self.lat, self.lng, tp, url)
+            #         setattr(self, u"{}_item".format(tp), gmap_ent)
         finally:
             super(GmapsPlace, self).save(*args, **kwargs)
 
