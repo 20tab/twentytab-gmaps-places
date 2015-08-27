@@ -2,33 +2,72 @@ from . import conf
 from django.conf import settings
 from django.db import models
 from django.template.defaultfilters import slugify
-# from django.utils.encoding import smart_str
 from gmapsmarkers.fields import GmapsField, GeotypeField
 from gmaps import Geocoding
 from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
-from utils import country_to_continent, CONTINENTS
+from utils import country_to_continent  # , CONTINENTS
 
-import uuid
 import json
 import time
+import uuid
+import pprint
+
+
+pp = pprint.PrettyPrinter(indent=4)
 
 ALLOWED_TYPES = settings.GMAPS_PLACES_ALLOWED_TYPES
 URL_TYPES = settings.GMAPS_PLACES_URL_TYPES
 GMAPS_DEFAULT_CLIENT_PARAMS = {
-    'sensor': True,
+    'sensor': False,
     'use_https': True,
     'api_key': settings.GMAPS_API_KEY,
 }
 GMAPS_DEFAULT_GEOCODE_PARAMS = {
     'language': settings.GMAPS_LANGUAGE_CODE,
+    # 'region': settings.GMAPS_REGION, TODO
 }
-
+GMAPS_DEFAULT_REVERSE_PARAMS = {
+    'language': settings.GMAPS_LANGUAGE_CODE,
+}
 gmaps_api = Geocoding(**GMAPS_DEFAULT_CLIENT_PARAMS)
+
+
+class gmaps_attempt(object):
+
+    def __init__(self, gmaps_call):
+        self.gmaps_call = gmaps_call
+
+    def __call__(self, *args, **kwargs):
+        attempts = 0
+        success = False
+        while success is not True and attempts < 3:
+            attempts += 1
+            try:
+                result = self.gmaps_call(*args, **kwargs)
+            except (NoResults, RequestDenied, InvalidRequest) as e:
+                raise e
+            except RateLimitExceeded as e:
+                time.sleep(1)
+                continue
+            else:
+                success = True
+        return result
+
+
+@gmaps_attempt
+def gmaps_api_geocode(*args, **kwargs):
+    return gmaps_api.geocode(*args, **kwargs)
+
+
+@gmaps_attempt
+def gmaps_api_reverse(*args, **kwargs):
+    return gmaps_api.reverse(*args, **kwargs)
 
 
 class GmapsItem(models.Model):
     geo_type = models.CharField(max_length=100)
     slug = models.SlugField()
+    geocode = models.CharField(max_length=255)
     place_id = models.CharField(max_length=255)
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True)
@@ -41,27 +80,35 @@ class GmapsItem(models.Model):
     @property
     def geo_address(self):
         if self.geo_type in (u"continent", u"country"):
-            return self.name
+            return unicode(self.name)
         name = self.short_name if self.short_name != "" else self.name
-        geo_address = (", ".join((self.url).split("/")[2:-1]))\
-            .strip(" -,") + u", {}".format(name)
-        return geo_address
+        geo_address = (
+            u"{} ,".format(name)
+            + (", ".join((self.url).split("/")[2:-1][::-1])).strip(" -,"))
+        return unicode(geo_address)
 
     @property
     def geometry_latlng(self):
-        try:
-            results = (json.loads(self.response_json))[0]
-        except (ValueError, KeyError):
-            return None
-        else:
-            lat = results['geometry']['location']['lat']
-            lng = results['geometry']['location']['lng']
-            return u"{},{}".format(lat, lng)
+        # warnings.warn(("GmapsItem 'geometry_latlng' property is deprecated. ")
+        #               ("Use 'geocode' attribute instead."))
+        return self.geocode
+
+    @property
+    def lat(self):
+        if self.geocode:
+            return self.geocode.split(",")[0]
+        return None
+
+    @property
+    def lng(self):
+        if self.geocode:
+            return self.geocode.split(",")[1]
+        return None
 
     @property
     def geometry_bounds(self):
         try:
-            results = (json.loads(self.response_json))[0]
+            results = (json.loads(self.response_json))
         except (ValueError, KeyError):
             return None
         else:
@@ -71,12 +118,11 @@ class GmapsItem(models.Model):
                 return None
             else:
                 return json.dumps(bounds)
-                # return u"{}".format(bounds,)
 
     @property
     def geometry_viewport(self):
         try:
-            results = (json.loads(self.response_json))[0]
+            results = (json.loads(self.response_json))
         except (ValueError, KeyError):
             return None
         else:
@@ -84,37 +130,168 @@ class GmapsItem(models.Model):
             return json.dumps(viewport)
 
     def get_response_json(self):
-        attempts = 0
-        success = False
-        while success is not True and attempts < 3:
-            attempts += 1
+        if self.geo_type == 'continent':
+            geo_type = ['continent', 'colloquial_area']
+            results = gmaps_api_geocode(
+                address=self.geo_address,
+                **GMAPS_DEFAULT_GEOCODE_PARAMS)
+        else:
+            geo_type = [self.geo_type]
             try:
-                result = gmaps_api.geocode(self.geo_address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
-            except (NoResults, RequestDenied, InvalidRequest) as e:
-                raise e
-            except RateLimitExceeded as e:
-                time.sleep(1)
-                continue
-            else:
-                success = True
-                if result:
-                    return json.dumps(result)
-        return ''
+                results = gmaps_api_reverse(
+                    float(self.lat), float(self.lng),
+                    result_type=self.geo_type,
+                    **GMAPS_DEFAULT_REVERSE_PARAMS)
+            except NoResults:
+                results = gmaps_api_reverse(
+                    float(self.lat), float(self.lng),
+                    **GMAPS_DEFAULT_REVERSE_PARAMS)
+        for res in results:
+            if any(x in geo_type for x in res['types']):
+                return json.dumps(res)
+        return None
 
-    def get_short_name(self):
+    def _get_address_component(self, component):
         if self.response_json is None or self.response_json == "":
             return ""
-        response_json = (json.loads(self.response_json))[0]
+        if self.geo_type == 'continent':
+            geo_type = ['continent', 'colloquial_area']
+        else:
+            geo_type = [self.geo_type]
+        response_json = (json.loads(self.response_json))
         for add in response_json['address_components']:
-            if self.geo_type in add['types']:
-                return add['short_name']
+            if any(x in geo_type for x in add['types']):
+                return add[component]
         return ""
+
+    def get_short_name(self):
+        return self._get_address_component('short_name')
+
+    def get_long_name(self):
+        return self._get_address_component('long_name')
 
     def get_place_id(self):
         if self.response_json is None or self.response_json == "":
             return ""
-        response_json = (json.loads(self.response_json))[0]
+        response_json = (json.loads(self.response_json))
         return response_json['place_id']
+
+    def get_geocode(self):
+        if self.response_json is None or self.response_json == "":
+            return ""
+        res = (json.loads(self.response_json))
+        lat = res['geometry']['location']['lat']
+        lng = res['geometry']['location']['lng']
+        return "{},{}".format(lat, lng)
+
+    @staticmethod
+    def _build_address_from_url(url):
+        return ", ".join((url).split("/")[2:][::-1]).strip(" -,")
+        # [2:] to skip the empty space and continent
+
+    @classmethod
+    def get_or_create_from_geocode(cls, lat, lng, geo_type, url=''):
+        try:
+            response = gmaps_api_reverse(
+                float(lat), float(lng), result_type=[geo_type, ],
+                **GMAPS_DEFAULT_REVERSE_PARAMS)
+        except NoResults:
+            response = gmaps_api_reverse(
+                float(lat), float(lng),
+                **GMAPS_DEFAULT_REVERSE_PARAMS)
+        new_gmi = None
+        found = False
+        for res in response:
+            if geo_type in res['types']:
+                found = True
+                try:
+                    new_gmi = GmapsItem.objects.get(place_id=res['place_id'])
+                except GmapsItem.DoesNotExist:
+                    place_id = res['place_id']
+                    lat = res['geometry']['location']['lat']
+                    lng = res['geometry']['location']['lng']
+                    geocode = "{},{}".format(lat, lng)
+                    name = None
+                    short_name = None
+                    slug = None
+                    for addr in res['address_components']:
+                        if geo_type in addr['types']:
+                            name = addr['long_name']
+                            short_name = addr['short_name']
+                            slug = slugify(name)
+                            break
+                    new_gmi = GmapsItem.objects.create(
+                        geo_type=geo_type,
+                        slug=slug,
+                        geocode=geocode,
+                        place_id=place_id,
+                        name=name,
+                        short_name=short_name,
+                        response_json=json.dumps(res),
+                        url=url if url not in (None, '') else "/{}".format(slug)
+                    )
+                else:
+                    break
+
+        if not found and geo_type == 'continent':
+            country_temp = None
+            for addr in response[0]['address_components']:
+                if 'country' in addr['types']:
+                    country_temp = addr['long_name']
+                    break
+            if country_temp in (None, ''):
+                raise ValueError('Continent not found')
+                # undefined
+            else:
+                continent = country_to_continent(country_temp)
+                if continent is None:
+                    raise NotImplementedError(
+                        (u"The Country you are looking for, related to the current "
+                         u"latlng '{},{}', is not in our list".format(lat, lng)))
+            # set the "home-made" continent
+            url += '/{}'.format(slugify(continent))
+            new_gmi, create = GmapsItem.objects.get_or_create(
+                geo_type='continent', name=continent,
+                slug=slugify(continent), url=url,
+                defaults={'place_id': str(uuid.uuid4()),
+                          'geocode': "{},{}".format(lat, lng)})
+        elif not found:
+            response = gmaps_api_geocode(
+                address=cls._build_address_from_url(url),
+                **GMAPS_DEFAULT_GEOCODE_PARAMS)
+            for res in response:
+                if geo_type in res['types']:
+                    found = True
+                    try:
+                        new_gmi = GmapsItem.objects.get(place_id=res['place_id'])
+                    except GmapsItem.DoesNotExist:
+                        place_id = res['place_id']
+                        lat = res['geometry']['location']['lat']
+                        lng = res['geometry']['location']['lng']
+                        geocode = "{},{}".format(lat, lng)
+                        name = None
+                        short_name = None
+                        slug = None
+                        for addr in res['address_components']:
+                            if geo_type in addr['types']:
+                                name = addr['long_name']
+                                short_name = addr['short_name']
+                                slug = slugify(name)
+                                break
+                        new_gmi = GmapsItem.objects.create(
+                            geo_type=geo_type,
+                            slug=slug,
+                            geocode=geocode,
+                            place_id=place_id,
+                            name=name,
+                            short_name=short_name,
+                            response_json=json.dumps(res),
+                            url=url if url not in (None, '') else "/{}".format(slug)
+                        )
+                    else:
+                        break
+
+        return new_gmi
 
     def __unicode__(self):
         return u"{}({})".format(self.slug, self.geo_type)
@@ -122,8 +299,10 @@ class GmapsItem(models.Model):
     def save(self, *args, **kwargs):
         if not self.response_json:
             self.response_json = self.get_response_json()
+            self.name = self.get_long_name()
             self.short_name = self.get_short_name()
             self.place_id = self.get_place_id()
+            self.geocode = self.get_geocode()
         super(GmapsItem, self).save(*args, **kwargs)
 
     class Meta:
@@ -201,19 +380,30 @@ class GmapsPlace(models.Model):
         else:
             return ""
 
+    @property
+    def lat(self):
+        return self.geocode.split(",")[0]
+
+    @property
+    def lng(self):
+        return self.geocode.split(",")[1]
+
     def process_address(self):
         try:
-            result = gmaps_api.geocode(self.address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
-        except (NoResults, RequestDenied, InvalidRequest, RateLimitExceeded) as e:
-            raise e
+            result = gmaps_api_geocode(self.address, **GMAPS_DEFAULT_GEOCODE_PARAMS)
+        except NoResults:
+            print("No Results for address {}".format(self))
+            return
         else:
-            lat = result[0]['geometry']['location']['lat']
-            lng = result[0]['geometry']['location']['lng']
+            result = result[0]
+
+            lat = result['geometry']['location']['lat']
+            lng = result['geometry']['location']['lng']
             self.geocode = u"{},{}".format(lat, lng)
-            formatted_address = result[0]['formatted_address']
+            formatted_address = result['formatted_address']
             self.address = formatted_address
-            self.place_id = result[0]['place_id']
-            address_components = result[0]['address_components']
+            self.place_id = result['place_id']
+            address_components = result['address_components']
             set_types = set(ALLOWED_TYPES)
             for add in address_components:
                 inters = set_types.intersection(set(add['types']))
@@ -226,43 +416,28 @@ class GmapsPlace(models.Model):
         return u'{}'.format(self.address)
 
     def save(self, *args, **kwargs):
-        url = ''
-        if self.country in (None, u""):
-            if slugify(self.address.lower()) in [x[0] for x in CONTINENTS]:
-                continent = self.address
-            else:
-                continent = u'undefined'
+        # set the continent (we have to force it because continent is not an
+        # administrative definition)
+        try:
+            continent = GmapsItem.get_or_create_from_geocode(
+                self.lat, self.lng, 'continent')
+        except NoResults:
+            print("No Results for address {}".format(self))
         else:
-            continent = country_to_continent(self.country)
-            if continent is None:
-                raise NotImplementedError(
-                    (u"The Country you are looking for, related to the current "
-                     u"address '{}', is not in our list".format(self.address)))
-        # set the "home-made" continent
-        url += '/{}'.format(slugify(continent))
-        gmap_ent, create = GmapsItem.objects.get_or_create(
-            geo_type='continent', name=continent,
-            slug=slugify(continent), url=url,
-            defaults={'place_id': str(uuid.uuid4()), })
-        self.continent_item = gmap_ent
-        # set all the other types
-        for tp in URL_TYPES:
-            curr_type = getattr(self, tp)
-            url_to_add = slugify(curr_type) if curr_type not in (None, '')\
-                else u"-"
-            url += '/{}'.format(url_to_add)
-            if curr_type:
-                # geocode = self.geocode if self.geo_type == tp else None
-                gmap_ent, create = GmapsItem.objects.get_or_create(
-                    geo_type=tp, name=curr_type,
-                    slug=slugify(curr_type),
-                    defaults={
-                        'place_id': str(uuid.uuid4()), 'url': url,
-                    })
-                # gmap_ent.geocode = geocode
-                # gmap_ent.save()
-                setattr(self, u"{}_item".format(tp), gmap_ent)
-        super(GmapsPlace, self).save(*args, **kwargs)
+            self.continent_item = continent
+            url = continent.url
+            # set all the other types
+            for tp in URL_TYPES:
+                curr_type = getattr(self, tp)
+                url_to_add = slugify(curr_type) if curr_type not in (None, '')\
+                    else u"-"
+                url += '/{}'.format(url_to_add)
+                if curr_type:
+                    gmap_ent = GmapsItem.get_or_create_from_geocode(
+                        self.lat, self.lng, tp, url)
+                    setattr(self, u"{}_item".format(tp), gmap_ent)
+        finally:
+            super(GmapsPlace, self).save(*args, **kwargs)
 
     class Meta:
         ordering = ('country', 'address')

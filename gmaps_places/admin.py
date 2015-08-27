@@ -17,7 +17,7 @@ class GmapsItemAdmin(admin.ModelAdmin):
 
     list_display = (
         'geo_type', 'slug', 'name', 'short_name', 'url',
-        'geo_address', 'geometry_latlng', 'place_id',
+        'geo_address', 'geocode', 'place_id',
         'geometry_viewport', 'geometry_bounds')
     list_filter = ('geo_type',)
     search_fields = ['slug', 'name', 'short_name', 'url', 'geo_type']
