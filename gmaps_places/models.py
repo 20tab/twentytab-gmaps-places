@@ -5,15 +5,12 @@ from django.template.defaultfilters import slugify
 from gmapsmarkers.fields import GmapsField, GeotypeField
 from gmaps import Geocoding
 from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
-from utils import country_to_continent  # , CONTINENTS
+from .utils import country_to_continent  # , CONTINENTS
 
 import json
 import time
 import uuid
-import pprint
 
-
-pp = pprint.PrettyPrinter(indent=4)
 
 ALLOWED_TYPES = settings.GMAPS_PLACES_ALLOWED_TYPES
 URL_TYPES = settings.GMAPS_PLACES_URL_TYPES
@@ -75,7 +72,7 @@ class GmapsItem(models.Model):
     use_viewport = models.BooleanField(default=True)
     url = models.CharField(max_length=255, blank=True)
     custom_zoom = models.PositiveSmallIntegerField(
-        blank=True, null=True, choices=[(x, x) for x in xrange(1, 22)])
+        blank=True, null=True, choices=[(x, x) for x in range(1, 22)])
 
     @property
     def geo_address(self):
@@ -305,6 +302,9 @@ class GmapsItem(models.Model):
     def __unicode__(self):
         return u"{}({})".format(self.slug, self.geo_type)
 
+    def __str__(self):
+        return self.__unicode__()
+
     def save(self, *args, **kwargs):
         if not self.response_json:
             self.response_json = self.get_response_json()
@@ -423,6 +423,9 @@ class GmapsPlace(models.Model):
 
     def __unicode__(self):
         return u'{}'.format(self.address)
+
+    def __str__(self):
+        return self.__unicode__()
 
     def save(self, *args, **kwargs):
         # set the continent (we have to force it because continent is not an

@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.conf import settings
-from gmaps.errors import NoResults, RequestDenied, InvalidRequest, RateLimitExceeded
-from models import GmapsPlace, GmapsItem
+from gmaps.errors import (
+    NoResults, RequestDenied, InvalidRequest, RateLimitExceeded)
+from .models import GmapsPlace, GmapsItem
 
 import time
 
