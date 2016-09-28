@@ -82,7 +82,7 @@ class GmapsItem(models.Model):
         geo_address = (
             u"{}, ".format(name)
             + (", ".join((self.url).split("/")[2:-1][::-1])).strip(" -,"))
-        return unicode(geo_address)
+        return u"".format(geo_address)
 
     @property
     def geometry_latlng(self):
