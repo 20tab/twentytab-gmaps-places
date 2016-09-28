@@ -77,7 +77,7 @@ class GmapsItem(models.Model):
     @property
     def geo_address(self):
         if self.geo_type in (u"continent", u"country"):
-            return unicode(self.name)
+            return u"{}".format(self.name)
         name = self.short_name if self.short_name != "" else self.name
         geo_address = (
             u"{}, ".format(name)
@@ -299,11 +299,11 @@ class GmapsItem(models.Model):
 
         return new_gmi
 
-    def __unicode__(self):
+    def __str__(self):
         return u"{}({})".format(self.slug, self.geo_type)
 
-    def __str__(self):
-        return self.__unicode__()
+    def __unicode__(self):
+        return self.__str__()
 
     def save(self, *args, **kwargs):
         if not self.response_json:
