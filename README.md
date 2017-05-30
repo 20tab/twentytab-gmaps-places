@@ -1,6 +1,10 @@
 twentytab-gmaps-places
 =====================
 
+**This project is no longer maintained. Check https://github.com/20tab/django-political-map instead**
+
+
+
 A Django app on top of twentytab-gmaps and Google Maps api v3 to manage geolocation and markers with all the administrative level details.
 
 *Note: this app is alpha version.*
